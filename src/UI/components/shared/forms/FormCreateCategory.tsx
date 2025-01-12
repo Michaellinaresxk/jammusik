@@ -10,8 +10,8 @@ import {globalColors, globalFormStyles} from '../../../theme/Theme';
 import {PrimaryButton} from '../PrimaryButton';
 
 export const FormCreateCategory = ({
-  initialTitle = '',
-  onCreateCategory,
+  initialTitle = '', // Corregido: cambiado de initialValues a initialTitle
+  onCreateCategory, // Corregido: añadido onCreateCategory como prop
   isLoading,
   isEditing = false,
 }) => {
@@ -29,7 +29,7 @@ export const FormCreateCategory = ({
 
   const handleSubmit = () => {
     if (validateForm()) {
-      onCreateCategory({title});
+      onCreateCategory({title}); // Corregido: usar onCreateCategory en lugar de onSubmit
     }
   };
 

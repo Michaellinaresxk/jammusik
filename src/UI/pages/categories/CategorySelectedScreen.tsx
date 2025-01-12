@@ -621,15 +621,6 @@ const styles = StyleSheet.create({
   deleteIcon: {
     color: globalColors.light,
   },
-  // editButtonContent: {
-  //   backgroundColor: globalColors.info,
-  //   borderRadius: 10,
-  //   height: 85,
-  //   width: 80,
-  //   alignItems: 'center',
-  //   justifyContent: 'center',
-  // },
-
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
