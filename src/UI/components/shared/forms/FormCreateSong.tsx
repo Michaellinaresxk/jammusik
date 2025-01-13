@@ -9,10 +9,10 @@ import {
 } from 'react-native';
 import {globalColors, globalFormStyles} from '../../../theme/Theme';
 import {PrimaryButton} from '../PrimaryButton';
-import {CustomDropdown} from '../CustomDropdown';
 import {useCategoryService} from '../../../../context/CategoryServiceContext';
 import {auth} from '../../../../infra/api/firebaseConfig';
 import {PrimaryIcon} from '../PrimaryIcon';
+import {EnhancedCategorySelector} from '../EnhancedCategorySelector';
 
 export const FormCreateSong = ({
   categoryId,
@@ -24,12 +24,13 @@ export const FormCreateSong = ({
 }) => {
   const [title, setTitle] = useState(initialValues.title);
   const [artist, setArtist] = useState(initialValues.artist);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(categoryId);
+  const [newCategoryTitle, setNewCategoryTitle] = useState('');
+  const [categories, setCategories] = useState([]);
   const [errors, setErrors] = useState({
     title: '',
     artist: '',
   });
-  const [selectedCategory, setSelectedCategory] = useState(categoryId);
-  const [categories, setCategories] = useState([]);
 
   const categoryService = useCategoryService();
   const isLibraryOrHome = categoryId === 'Library' || !categoryId;
@@ -50,10 +51,7 @@ export const FormCreateSong = ({
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
-        Alert.alert(
-          'Error',
-          'Failed to load categories. Please try again later.',
-        );
+        Alert.alert('Error', 'Failed to load categories');
       }
     };
 
@@ -61,6 +59,19 @@ export const FormCreateSong = ({
       loadCategories();
     }
   }, [categoryService, isLibraryOrHome]);
+
+  const handleCategorySelect = (value: string) => {
+    const existingCategory = categories.find(cat => cat.value === value);
+    if (existingCategory) {
+      // Si es un ID de categoría existente
+      setSelectedCategoryId(value);
+      setNewCategoryTitle('');
+    } else {
+      // Si es un título nuevo (de input o suggested)
+      setSelectedCategoryId(null);
+      setNewCategoryTitle(value);
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {
@@ -70,17 +81,17 @@ export const FormCreateSong = ({
     let isValid = true;
 
     if (!title.trim()) {
-      newErrors.title = 'The title is required';
+      newErrors.title = 'Title is required';
       isValid = false;
     }
 
     if (!artist.trim()) {
-      newErrors.artist = 'The artist is required';
+      newErrors.artist = 'Artist is required';
       isValid = false;
     }
 
-    if (isLibraryOrHome && !selectedCategory) {
-      Alert.alert('Error', 'Please select a category');
+    if (isLibraryOrHome && !selectedCategoryId && !newCategoryTitle.trim()) {
+      Alert.alert('Error', 'Please select or create a category');
       isValid = false;
     }
 
@@ -91,20 +102,48 @@ export const FormCreateSong = ({
   const handleSubmit = async () => {
     if (validateForm()) {
       try {
-        const finalCategoryId = isLibraryOrHome ? selectedCategory : categoryId;
+        let finalCategoryId = selectedCategoryId;
+        const userId = auth.currentUser?.uid;
+
+        if (!userId) {
+          Alert.alert('Error', 'User must be logged in');
+          return;
+        }
+
+        if (!selectedCategoryId && newCategoryTitle.trim()) {
+          try {
+            const categoryResponse = await categoryService.createCategory(
+              newCategoryTitle.trim(),
+              userId,
+            );
+            finalCategoryId = categoryResponse.id;
+          } catch (error: any) {
+            if (error.message.includes('already exists')) {
+              const existingCategories = await categoryService.getCategories(
+                userId,
+              );
+              const existingCategory = existingCategories.find(
+                cat =>
+                  cat.title.toLowerCase() ===
+                  newCategoryTitle.trim().toLowerCase(),
+              );
+              if (existingCategory) {
+                finalCategoryId = existingCategory.id;
+              }
+            } else {
+              throw error;
+            }
+          }
+        }
+
         await onSubmit({
-          title,
-          artist,
-          categoryId: finalCategoryId,
+          title: title.trim(),
+          artist: artist.trim(),
+          categoryId: finalCategoryId!,
         });
       } catch (error) {
-        console.error('Error with song:', error);
-        Alert.alert(
-          'Error',
-          `Failed to ${
-            isEditing ? 'update' : 'create'
-          } song. Please try again.`,
-        );
+        console.error('Error in form:', error);
+        Alert.alert('Error', 'Failed to create song');
       }
     }
   };
@@ -127,9 +166,7 @@ export const FormCreateSong = ({
             setErrors(prev => ({...prev, title: ''}));
           }}
         />
-        {errors.title ? (
-          <Text style={styles.errorText}>{errors.title}</Text>
-        ) : null}
+        {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
 
         <TextInput
           style={[
@@ -137,7 +174,7 @@ export const FormCreateSong = ({
             errors.artist && styles.inputError,
           ]}
           placeholder="Artist"
-          placeholderTextColor={'gray'}
+          placeholderTextColor="#838282"
           autoCapitalize="words"
           autoCorrect={false}
           value={artist}
@@ -146,19 +183,15 @@ export const FormCreateSong = ({
             setErrors(prev => ({...prev, artist: ''}));
           }}
         />
-        {errors.artist ? (
-          <Text style={styles.errorText}>{errors.artist}</Text>
-        ) : null}
+        {errors.artist && <Text style={styles.errorText}>{errors.artist}</Text>}
 
         {isLibraryOrHome ? (
-          categories.length > 0 && (
-            <CustomDropdown
-              items={categories}
-              defaultValue={selectedCategory}
-              placeholder="Select a category"
-              onChange={value => setSelectedCategory(value)}
-            />
-          )
+          <EnhancedCategorySelector
+            categories={categories}
+            selectedCategory={selectedCategoryId}
+            onCategorySelect={handleCategorySelect}
+            isLibraryOrHome={true}
+          />
         ) : (
           <View style={styles.titleContent}>
             <PrimaryIcon
@@ -179,7 +212,7 @@ export const FormCreateSong = ({
             ) : isEditing ? (
               'Update Song'
             ) : (
-              'Create A New Song'
+              'Create Song'
             )
           }
           bgColor={globalColors.primary}
@@ -187,7 +220,10 @@ export const FormCreateSong = ({
           colorText={globalColors.light}
           btnFontSize={20}
           onPress={handleSubmit}
-          disabled={isLoading || (isLibraryOrHome && !selectedCategory)}
+          disabled={
+            isLoading ||
+            (isLibraryOrHome && !selectedCategoryId && !newCategoryTitle)
+          }
         />
       </View>
     </View>
@@ -196,16 +232,15 @@ export const FormCreateSong = ({
 
 const styles = StyleSheet.create({
   errorText: {
-    color: 'red',
+    color: '#c62828',
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
   },
   inputError: {
-    borderColor: 'red',
+    borderColor: '#c62828',
   },
   titleContent: {
-    textAlign: 'center',
     flexDirection: 'row',
     gap: 5,
     backgroundColor: globalColors.primaryAlt,
@@ -214,11 +249,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 14,
     marginBottom: 30,
+    alignItems: 'center',
   },
   categoryText: {
     fontSize: 18,
     color: globalColors.primary,
   },
 });
-
-export default FormCreateSong;

@@ -66,7 +66,6 @@ export const HomeScreen = () => {
       });
 
       setIsSongModalVisible(false);
-      // Reload data after creating the song
       loadData();
     } catch (error) {
       console.error('Error creating song:', error);
