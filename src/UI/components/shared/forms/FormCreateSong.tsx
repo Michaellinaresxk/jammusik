@@ -30,37 +30,38 @@ export const FormCreateSong = ({
   });
   const [selectedCategory, setSelectedCategory] = useState(categoryId);
   const [categories, setCategories] = useState([]);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
 
   const categoryService = useCategoryService();
   const isLibraryOrHome = categoryId === 'Library' || !categoryId;
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        if (auth.currentUser) {
-          const userId = auth.currentUser.uid;
-          const fetchedCategories = await categoryService.getCategories(userId);
-          const formattedCategories = (fetchedCategories || []).map(
-            category => ({
-              label: category.title,
-              value: category.id,
-            }),
-          );
-          setCategories(formattedCategories);
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        Alert.alert(
-          'Error',
-          'Failed to load categories. Please try again later.',
-        );
-      }
-    };
+  const [customCategoryTitle, setCustomCategoryTitle] = useState('');
+  const userId = auth.currentUser?.uid;
 
-    if (isLibraryOrHome) {
-      loadCategories();
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      if (!userId) {
+        throw new Error('No user logged in');
+      }
+
+      const fetchedCategories = await categoryService.getCategories(userId);
+      const formattedCategories = fetchedCategories.map(category => ({
+        label: category.title,
+        value: category.id,
+      }));
+      setCategories(formattedCategories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      Alert.alert(
+        'Error',
+        'Failed to load categories. Please try again later.',
+      );
     }
-  }, [categoryService, isLibraryOrHome]);
+  };
 
   const validateForm = () => {
     const newErrors = {
@@ -79,8 +80,8 @@ export const FormCreateSong = ({
       isValid = false;
     }
 
-    if (isLibraryOrHome && !selectedCategory) {
-      Alert.alert('Error', 'Please select a category');
+    if (isLibraryOrHome && !selectedCategory && !customCategoryTitle.trim()) {
+      Alert.alert('Error', 'Please select or create a category');
       isValid = false;
     }
 
@@ -88,24 +89,62 @@ export const FormCreateSong = ({
     return isValid;
   };
 
-  const handleSubmit = async () => {
-    if (validateForm()) {
-      try {
-        const finalCategoryId = isLibraryOrHome ? selectedCategory : categoryId;
-        await onSubmit({
-          title,
-          artist,
-          categoryId: finalCategoryId,
-        });
-      } catch (error) {
-        console.error('Error with song:', error);
-        Alert.alert(
-          'Error',
-          `Failed to ${
-            isEditing ? 'update' : 'create'
-          } song. Please try again.`,
+  const createCategory = async title => {
+    setIsCreatingCategory(true);
+    try {
+      const newCategory = await categoryService.createCategory(userId, title);
+      await loadCategories(); // Reload categories to include the new one
+      return newCategory.id;
+    } catch (error) {
+      if (error.message.includes('already exists')) {
+        // If category exists, find and return its ID
+        const existingCategories = await categoryService.getCategories(userId);
+        const existingCategory = existingCategories.find(
+          cat => cat.title.toLowerCase() === title.toLowerCase(),
         );
+        if (existingCategory) {
+          return existingCategory.id;
+        }
       }
+      throw error;
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    try {
+      let finalCategoryId = selectedCategory;
+
+      // If user entered a custom category
+      if (customCategoryTitle.trim() && !selectedCategory) {
+        finalCategoryId = await createCategory(customCategoryTitle.trim());
+        if (!finalCategoryId) {
+          Alert.alert('Error', 'Failed to create category');
+          return;
+        }
+      }
+
+      // Create the song with the category ID
+      await onSubmit({
+        title: title.trim(),
+        artist: artist.trim(),
+        categoryId: isLibraryOrHome ? finalCategoryId : categoryId,
+      });
+
+      // Clear form after successful submission
+      setTitle('');
+      setArtist('');
+      setCustomCategoryTitle('');
+      setSelectedCategory(null);
+    } catch (error) {
+      console.error('Error with song:', error);
+      Alert.alert(
+        'Error',
+        `Failed to ${isEditing ? 'update' : 'create'} song. Please try again.`,
+      );
     }
   };
 
@@ -137,7 +176,7 @@ export const FormCreateSong = ({
             errors.artist && styles.inputError,
           ]}
           placeholder="Artist"
-          placeholderTextColor={'gray'}
+          placeholderTextColor="gray"
           autoCapitalize="words"
           autoCorrect={false}
           value={artist}
@@ -151,14 +190,34 @@ export const FormCreateSong = ({
         ) : null}
 
         {isLibraryOrHome ? (
-          categories.length > 0 && (
-            <CustomDropdown
-              items={categories}
-              defaultValue={selectedCategory}
-              placeholder="Select a category"
-              onChange={value => setSelectedCategory(value)}
+          <>
+            {categories.length > 0 && (
+              <CustomDropdown
+                items={categories}
+                defaultValue={selectedCategory}
+                placeholder="Select a category"
+                onChange={value => {
+                  setSelectedCategory(value);
+                  setCustomCategoryTitle('');
+                }}
+              />
+            )}
+            <TextInput
+              style={[
+                styles.customCategoryInput,
+                customCategoryTitle && styles.activeInput,
+              ]}
+              placeholder="Or type a new category name"
+              value={customCategoryTitle}
+              onChangeText={text => {
+                setCustomCategoryTitle(text);
+                setSelectedCategory(null);
+              }}
+              placeholderTextColor="#838282"
+              autoCapitalize="words"
+              editable={!isCreatingCategory}
             />
-          )
+          </>
         ) : (
           <View style={styles.titleContent}>
             <PrimaryIcon
@@ -174,7 +233,7 @@ export const FormCreateSong = ({
 
         <PrimaryButton
           label={
-            isLoading ? (
+            isLoading || isCreatingCategory ? (
               <ActivityIndicator size="large" />
             ) : isEditing ? (
               'Update Song'
@@ -187,7 +246,7 @@ export const FormCreateSong = ({
           colorText={globalColors.light}
           btnFontSize={20}
           onPress={handleSubmit}
-          disabled={isLoading || (isLibraryOrHome && !selectedCategory)}
+          disabled={isLoading || isCreatingCategory}
         />
       </View>
     </View>
@@ -218,6 +277,19 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 18,
     color: globalColors.primary,
+  },
+  customCategoryInput: {
+    marginTop: 10,
+    backgroundColor: globalColors.light,
+    borderWidth: 1,
+    borderColor: globalColors.primaryAlt,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  activeInput: {
+    borderColor: globalColors.primary,
+    borderWidth: 1.5,
   },
 });
 
