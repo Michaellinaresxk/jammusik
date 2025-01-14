@@ -38,23 +38,22 @@ export const EnhancedCategorySelector: React.FC<Props> = ({
   }, [selectedCategory, categories]);
 
   const handleExistingCategorySelect = (value: string) => {
-    onCategorySelect(value); // Enviamos el ID directamente
+    console.log('Selected existing category value:', value);
+    onCategorySelect(value); // Enviamos el ID de la categoría existente
     setCustomCategoryTitle('');
   };
-
   const handleDefaultCategorySelect = (category: {label: string}) => {
-    if (category?.label) {
-      const title = category.label.trim();
-      setCustomCategoryTitle(title);
-      onCategorySelect(title);
-    }
+    console.log('Selected default category:', category.label);
+    const title = category.label.trim();
+    setCustomCategoryTitle(title);
+    onCategorySelect(title); // Enviamos el título para crear nueva categoría
   };
 
   const handleNewCategoryInput = (text: string) => {
+    console.log('New category input:', text);
     setCustomCategoryTitle(text);
-    const trimmedText = text.trim();
-    if (trimmedText) {
-      onCategorySelect(trimmedText);
+    if (text.trim()) {
+      onCategorySelect(text.trim()); // Enviamos el título para crear nueva categoría
     }
   };
 

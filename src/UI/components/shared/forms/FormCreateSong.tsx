@@ -61,18 +61,18 @@ export const FormCreateSong = ({
   }, [categoryService, isLibraryOrHome]);
 
   const handleCategorySelect = (value: string) => {
+    console.log('Category selected:', value);
     const existingCategory = categories.find(cat => cat.value === value);
     if (existingCategory) {
-      // Si es un ID de categoría existente
+      // Si es un ID existente del dropdown
       setSelectedCategoryId(value);
       setNewCategoryTitle('');
     } else {
-      // Si es un título nuevo (de input o suggested)
+      // Si es un título nuevo
       setSelectedCategoryId(null);
       setNewCategoryTitle(value);
     }
   };
-
   const validateForm = () => {
     const newErrors = {
       title: '',
@@ -102,23 +102,48 @@ export const FormCreateSong = ({
   const handleSubmit = async () => {
     if (validateForm()) {
       try {
-        let finalCategoryId = selectedCategoryId;
         const userId = auth.currentUser?.uid;
-
         if (!userId) {
           Alert.alert('Error', 'User must be logged in');
           return;
         }
 
-        if (!selectedCategoryId && newCategoryTitle.trim()) {
+        let finalCategoryId = selectedCategoryId;
+
+        // Si es una categoría existente (del dropdown)
+        if (selectedCategoryId) {
+          console.log('Using existing category ID:', selectedCategoryId);
+          finalCategoryId = selectedCategoryId;
+        }
+        // Si es una nueva categoría (del input o suggested)
+        else if (newCategoryTitle.trim()) {
           try {
-            const categoryResponse = await categoryService.createCategory(
-              newCategoryTitle.trim(),
+            // Buscar si la categoría ya existe
+            const existingCategories = await categoryService.getCategories(
               userId,
             );
-            finalCategoryId = categoryResponse.id;
+            const existingCategory = existingCategories.find(
+              cat =>
+                cat.title.toLowerCase() ===
+                newCategoryTitle.trim().toLowerCase(),
+            );
+
+            if (existingCategory) {
+              // Si existe, usar su ID
+              console.log('Found existing category:', existingCategory.title);
+              finalCategoryId = existingCategory.id;
+            } else {
+              // Si no existe, crear nueva
+              console.log('Creating new category:', newCategoryTitle);
+              const newCategory = await categoryService.createCategory(
+                newCategoryTitle.trim(),
+                userId,
+              );
+              finalCategoryId = newCategory.id;
+            }
           } catch (error: any) {
             if (error.message.includes('already exists')) {
+              // Si falló porque ya existe, buscarla de nuevo
               const existingCategories = await categoryService.getCategories(
                 userId,
               );
@@ -136,10 +161,17 @@ export const FormCreateSong = ({
           }
         }
 
+        if (!finalCategoryId) {
+          Alert.alert('Error', 'Category ID is required');
+          return;
+        }
+
+        // Crear la canción
+        console.log('Creating song with category ID:', finalCategoryId);
         await onSubmit({
           title: title.trim(),
           artist: artist.trim(),
-          categoryId: finalCategoryId!,
+          categoryId: finalCategoryId,
         });
       } catch (error) {
         console.error('Error in form:', error);
