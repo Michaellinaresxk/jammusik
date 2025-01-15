@@ -1,9 +1,7 @@
 import {useState, useCallback, useEffect} from 'react';
 import {auth} from '../infra/api/firebaseConfig';
 import {useUserService} from '../context/UserServiceContext';
-import {useCategoryService} from '../context/CategoryServiceContext';
 import {ONBOARDING_STEPS} from '../constants/onboarding';
-import Toast from 'react-native-toast-message';
 import {Category} from '../types/songTypes';
 
 export const useEnhancedOnboarding = () => {
@@ -11,7 +9,6 @@ export const useEnhancedOnboarding = () => {
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [currentStep, setCurrentStep] = useState(ONBOARDING_STEPS.WELCOME);
   const userService = useUserService();
-  const categoryService = useCategoryService();
 
   useEffect(() => {
     const checkUserStatus = async () => {
