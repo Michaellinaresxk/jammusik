@@ -7,44 +7,53 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import {globalColors} from '../../theme/Theme';
 import {useTopTracks} from '../../../hooks/useTopTracks';
-import {API_BASE_URL} from '../../../infra/api/spotifyBaseUrl';
+// import {useNewReleases} from '../../../hooks/useNewReleases';
+// import {API_BASE_URL} from '../../../infra/api/spotifyBaseUrl';
 import {Track} from '../../../types/tracksTypes';
 import {HorizontalTopTracks} from '../../components/shared/HorizontalTopTracks';
 import {PrimaryIcon} from '../../components/shared/PrimaryIcon';
-import {useNavigation} from '@react-navigation/native';
+import {useNewReleases} from '../../../hooks/useNewReleases';
+// import {useNavigation} from '@react-navigation/native';
 
 const {width} = Dimensions.get('window');
 
 export const ExploreScreen = () => {
   const {tracks, isLoading, error} = useTopTracks();
-  const navigation = useNavigation();
+  const {
+    newReleases,
+    isLoading: releasesLoading,
+    error: releasesError,
+  } = useNewReleases();
+  // const {newReleases, isLoading, error} = useNewReleases();
 
-  useEffect(() => {
-    const testConnection = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/test`);
-        const data = await response.json();
-        console.log('Test endpoint response:', data);
-      } catch (error) {
-        console.error('Test connection failed:', error);
-      }
-    };
-    testConnection();
-  }, []);
+  // const navigation = useNavigation();
+
+  // useEffect(() => {
+  //   const testConnection = async () => {
+  //     try {
+  //       const response = await fetch(`${API_BASE_URL}/test`);
+  //       const data = await response.json();
+  //       console.log('Test endpoint response:', data);
+  //     } catch (error) {
+  //       console.error('Test connection failed:', error);
+  //     }
+  //   };
+  //   testConnection();
+  // }, []);
 
   const featuredArtists = [
     {id: 1, name: 'Artist Name', genre: 'Pop'},
     {id: 2, name: 'Artist Two', genre: 'Rock'},
-    // Más artistas
   ];
 
   const tools = [
     {id: 1, name: 'Metronome', icon: '🎵'},
     {id: 2, name: 'Tuner', icon: '🎸'},
-    // Más herramientas
   ];
 
   const handleTrackPress = (track: Track) => {
@@ -63,7 +72,7 @@ export const ExploreScreen = () => {
       </View>
 
       {/* Recently Played Section */}
-      <View style={styles.section}>
+      {/* <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recently Played</Text>
         <ScrollView
           horizontal
@@ -77,41 +86,46 @@ export const ExploreScreen = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </View>
-
-      {/* Top 10 This Week Section */}
-      {/* <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Top 10 This Week</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllButton}>See All</Text>
-          </TouchableOpacity>
-        </View> */}
-      {/* {tracks.slice(0, 3).map((song, index) => (
-          <TouchableOpacity key={song.id} style={styles.songRow}>
-            <Text style={styles.songRank}>{index + 1}</Text>
-            <View style={styles.songImagePlaceholder} />
-            <View style={styles.songInfo}>
-              <Text style={styles.songTitle}>{song.name}</Text>
-              <Text style={styles.songArtist}>{song.artist}</Text>
-            </View>
-            <Text style={styles.songPlays}>{song.plays}</Text>
-          </TouchableOpacity>
-        ))} */}
-      {/* {tracks.map((track, index) => (
-          <TopTrackCard
-            key={track.id}
-            track={track}
-            onPress={() => handleTrackPress(track)}
-          />
-        ))}
       </View> */}
+      {/* New Releases Section */}
+      {!releasesError && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>New Releases</Text>
+            <PrimaryIcon
+              name={'chevron-forward-sharp'}
+              color={globalColors.light}
+            />
+          </View>
+          {releasesLoading ? (
+            <ActivityIndicator color={globalColors.primary} />
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.horizontalScroll}>
+              {newReleases.map(release => (
+                <TouchableOpacity key={release.id} style={styles.recentCard}>
+                  {release.image ? (
+                    <Image
+                      source={{uri: release.image}}
+                      style={styles.recentImagePlaceholder}
+                    />
+                  ) : (
+                    <View style={styles.recentImagePlaceholder} />
+                  )}
+                  <Text style={styles.recentTitle}>{release.name}</Text>
+                  <Text style={styles.recentSubtitle}>{release.artist}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Top 10 This Week</Text>
-          {/* <TouchableOpacity>
-            <Text style={styles.seeAllButton}>See All</Text>
-          </TouchableOpacity> */}
           <PrimaryIcon
             name={'chevron-forward-sharp'}
             color={globalColors.light}
