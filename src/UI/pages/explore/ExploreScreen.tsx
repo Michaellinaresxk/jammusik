@@ -7,8 +7,6 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
-  ActivityIndicator,
-  Image,
   Linking,
 } from 'react-native';
 import {globalColors} from '../../theme/Theme';
@@ -17,6 +15,7 @@ import {Track} from '../../../types/tracksTypes';
 import {HorizontalTopTracks} from '../../components/shared/HorizontalTopTracks';
 import {PrimaryIcon} from '../../components/shared/PrimaryIcon';
 import {useNewReleases} from '../../../hooks/useNewReleases';
+import {NewReleasesContent} from '../../components/shared/NewReleasesContent';
 
 const {width} = Dimensions.get('window');
 
@@ -46,41 +45,6 @@ export const ExploreScreen = () => {
     Alert.alert('Song details soon...');
   };
 
-  const openInSpotify = async release => {
-    Alert.alert(
-      '🎵 Abrir Spotify',
-      `¿Deseas escuchar "${release.name}" en Spotify?`,
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Abrir',
-          onPress: async () => {
-            try {
-              const supported = await Linking.canOpenURL(release.external_url);
-
-              if (supported) {
-                await Linking.openURL(release.external_url);
-              } else {
-                Alert.alert(
-                  'Error',
-                  'No se puede abrir Spotify en este dispositivo',
-                );
-              }
-            } catch (error) {
-              Alert.alert(
-                'Error',
-                'Ocurrió un error al intentar abrir Spotify',
-              );
-            }
-          },
-        },
-      ],
-    );
-  };
-
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
@@ -88,48 +52,12 @@ export const ExploreScreen = () => {
         <Text style={styles.headerTitle}>Explore</Text>
       </View>
 
-      {!releasesError && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>New Releases</Text>
-            <PrimaryIcon
-              name={'chevron-forward-sharp'}
-              color={globalColors.light}
-            />
-          </View>
-          {releasesLoading ? (
-            <ActivityIndicator color={globalColors.primary} />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.horizontalScroll}>
-              {newReleases.map(release => (
-                <TouchableOpacity
-                  key={release.id}
-                  style={styles.recentCard}
-                  activeOpacity={0.7}
-                  onPress={() => openInSpotify(release)}>
-                  {release.image ? (
-                    <Image
-                      source={{uri: release.image}}
-                      style={styles.recentImagePlaceholder}
-                    />
-                  ) : (
-                    <View style={styles.recentImagePlaceholder} />
-                  )}
-                  <Text style={styles.recentTitle} numberOfLines={1}>
-                    {release.name}
-                  </Text>
-                  <Text style={styles.recentSubtitle} numberOfLines={1}>
-                    {release.artist}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-      )}
+      {/* New Releases Component */}
+      <NewReleasesContent
+        newReleases={newReleases}
+        isLoading={releasesLoading}
+        error={releasesError}
+      />
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
