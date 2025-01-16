@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,18 +7,15 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
-  ActivityIndicator,
-  Image,
+  Linking,
 } from 'react-native';
 import {globalColors} from '../../theme/Theme';
 import {useTopTracks} from '../../../hooks/useTopTracks';
-// import {useNewReleases} from '../../../hooks/useNewReleases';
-// import {API_BASE_URL} from '../../../infra/api/spotifyBaseUrl';
 import {Track} from '../../../types/tracksTypes';
 import {HorizontalTopTracks} from '../../components/shared/HorizontalTopTracks';
 import {PrimaryIcon} from '../../components/shared/PrimaryIcon';
 import {useNewReleases} from '../../../hooks/useNewReleases';
-// import {useNavigation} from '@react-navigation/native';
+import {NewReleasesContent} from '../../components/shared/NewReleasesContent';
 
 const {width} = Dimensions.get('window');
 
@@ -29,22 +26,6 @@ export const ExploreScreen = () => {
     isLoading: releasesLoading,
     error: releasesError,
   } = useNewReleases();
-  // const {newReleases, isLoading, error} = useNewReleases();
-
-  // const navigation = useNavigation();
-
-  // useEffect(() => {
-  //   const testConnection = async () => {
-  //     try {
-  //       const response = await fetch(`${API_BASE_URL}/test`);
-  //       const data = await response.json();
-  //       console.log('Test endpoint response:', data);
-  //     } catch (error) {
-  //       console.error('Test connection failed:', error);
-  //     }
-  //   };
-  //   testConnection();
-  // }, []);
 
   const featuredArtists = [
     {id: 1, name: 'Artist Name', genre: 'Pop'},
@@ -71,57 +52,12 @@ export const ExploreScreen = () => {
         <Text style={styles.headerTitle}>Explore</Text>
       </View>
 
-      {/* Recently Played Section */}
-      {/* <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recently Played</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.horizontalScroll}>
-          {[1, 2, 3].map(item => (
-            <TouchableOpacity key={item} style={styles.recentCard}>
-              <View style={styles.recentImagePlaceholder} />
-              <Text style={styles.recentTitle}>Recent Track {item}</Text>
-              <Text style={styles.recentSubtitle}>Artist {item}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View> */}
-      {/* New Releases Section */}
-      {!releasesError && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>New Releases</Text>
-            <PrimaryIcon
-              name={'chevron-forward-sharp'}
-              color={globalColors.light}
-            />
-          </View>
-          {releasesLoading ? (
-            <ActivityIndicator color={globalColors.primary} />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.horizontalScroll}>
-              {newReleases.map(release => (
-                <TouchableOpacity key={release.id} style={styles.recentCard}>
-                  {release.image ? (
-                    <Image
-                      source={{uri: release.image}}
-                      style={styles.recentImagePlaceholder}
-                    />
-                  ) : (
-                    <View style={styles.recentImagePlaceholder} />
-                  )}
-                  <Text style={styles.recentTitle}>{release.name}</Text>
-                  <Text style={styles.recentSubtitle}>{release.artist}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-      )}
+      {/* New Releases Component */}
+      <NewReleasesContent
+        newReleases={newReleases}
+        isLoading={releasesLoading}
+        error={releasesError}
+      />
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -171,7 +107,7 @@ export const ExploreScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#070c0d', // secondary
+    backgroundColor: globalColors.secondary,
   },
   header: {
     padding: 20,
@@ -181,7 +117,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 34,
     fontWeight: 'bold',
-    color: '#F0F7EE', // primaryaryAlt4
+    color: globalColors.secondary,
   },
   section: {
     padding: 20,
@@ -199,7 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   seeAllButton: {
-    color: '#18998B', // primary
+    color: globalColors.primary,
     fontSize: 16,
   },
   horizontalScroll: {
@@ -306,5 +242,75 @@ const styles = StyleSheet.create({
     color: '#838282',
     fontSize: 14,
     textAlign: 'center',
+  },
+  imageContainer: {
+    position: 'relative',
+    width: '100%',
+    aspectRatio: 1,
+  },
+
+  playButton: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{translateX: -20}, {translateY: -20}],
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    // Sombra suave
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+
+  previewBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: globalColors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+
+  previewText: {
+    color: globalColors.light,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+
+  recentCard: {
+    // Actualizar el estilo existente
+    position: 'relative',
+    width: 150,
+    marginRight: 16,
+  },
+
+  recentImagePlaceholder: {
+    // Actualizar para que coincida con imageContainer
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 8,
+  },
+
+  recentTitle: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: globalColors.light,
+  },
+
+  recentSubtitle: {
+    marginTop: 4,
+    fontSize: 12,
+    color: globalColors.terceary,
   },
 });

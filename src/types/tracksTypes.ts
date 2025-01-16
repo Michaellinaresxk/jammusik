@@ -14,12 +14,21 @@ export interface SpotifyConfig {
   getTrackDetails: (trackId: string) => Promise<Track>;
 }
 
-export type NewRelease = {
+export interface Preview {
+  id: string;
+  preview_url: string | null;
+  duration_ms: number;
+  popularity: number;
+}
+
+export interface NewRelease {
   id: string;
   name: string;
   artist: string;
   album: string;
-  image?: string;
+  image: string | null;
   release_date: string;
-  external_url?: string;
-};
+  external_url: string;
+  duration_ms: number;
+  popularity: number;
+}
