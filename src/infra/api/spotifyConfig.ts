@@ -37,26 +37,6 @@ const spotifyConfig = {
     }
   },
 
-  getTrackDetails: async (trackId: string) => {
-    try {
-      console.log('Requesting track details for:', trackId);
-      const response = await fetch(`${API_BASE_URL}/tracks/${trackId}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Track details response:', data);
-      return data;
-    } catch (error) {
-      console.error('Error fetching track details:', error);
-      throw error;
-    }
-  },
-
   getNewReleases: async () => {
     try {
       console.log('Running on:', Platform.OS);
