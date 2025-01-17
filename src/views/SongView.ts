@@ -1,6 +1,7 @@
 import type Song from '../domain/song/Song';
 
 export class SongView {
+  addedAt: number | undefined;
   private constructor(
     public readonly id: string,
     public readonly title: string,

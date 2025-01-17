@@ -28,7 +28,6 @@ import {auth} from '../../../infra/api/firebaseConfig';
 import {usePullRefresh} from '../../../hooks/usePullRefresing';
 import {getIsDone} from '../../../hooks/useToggleIsDone';
 import {useResetSongsState} from '../../../store/useResetSongsState';
-// import useAnimationKeyboard from '../../../hooks/useAnimationKeyboard';
 import {SongSelectorModal} from '../../components/shared/modals/SongSelectorModal';
 import {SongOptionsModal} from '../../components/shared/modals/SongOptionsModal';
 import {TabNavigatorParamsList} from '../../routes/TabNavigator';
@@ -48,7 +47,6 @@ export const PlaylistSelectedScreen = () => {
   const [isDone, setIsDone] = useState(false);
   const resetSongsState = useResetSongsState();
   const {resetToggle, resetAllSongs} = resetSongsState;
-  // const {height} = useAnimationKeyboard();
   const [isSongSelectorVisible, setIsSongSelectorVisible] = useState(false);
 
   const [isOptionsVisible, setIsOptionsVisible] = useState(false);
@@ -97,12 +95,21 @@ export const PlaylistSelectedScreen = () => {
       console.log('Fetching songs...');
       const fetchedSongs = await playlistService.getPlaylistSongs(playlistId);
       console.log('Fetched songs:', fetchedSongs);
+
+      // Sort songs by addedAt from newest to oldest
+      const sortedSongs = [...fetchedSongs].sort((a, b) => {
+        const timeA = a.addedAt || 0;
+        const timeB = b.addedAt || 0;
+        return timeB - timeA; // descending order (most recent first)
+      });
+
       const songsWithIsDone = await Promise.all(
-        fetchedSongs.map(async song => ({
+        sortedSongs.map(async song => ({
           ...song,
           isDone: await getIsDone(song.id),
         })),
       );
+
       setSongList(songsWithIsDone);
     } catch (error) {
       console.error('Failed to fetch songs from playlist:', error);
@@ -180,7 +187,7 @@ export const PlaylistSelectedScreen = () => {
       onPress={() => {
         setSelectedSongId(songId);
         setIsOptionsVisible(true);
-        // Cerrar el swipeable después de presionar el botón
+        // Close the swipeable after pressing the button
         swipeableRef.current[songId]?.close();
       }}>
       <Icon
