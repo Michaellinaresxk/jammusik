@@ -15,7 +15,6 @@ import {globalColors} from '../../../theme/Theme';
 import {useCategoryService} from '../../../../context/CategoryServiceContext';
 import {SongView} from '../../../../views/SongView';
 import {PrimaryButton} from '../PrimaryButton';
-// import { KeyboardGestureArea } from 'react-native-keyboard-controller';
 import {ScrollView} from 'react-native-gesture-handler';
 
 interface SongSelectorModalProps {
@@ -35,6 +34,22 @@ export const SongSelectorModal: React.FC<SongSelectorModalProps> = ({
   const auth = getAuth();
   const categoryService = useCategoryService();
 
+  const sortSongs = useCallback((songsToSort: SongView[]): SongView[] => {
+    return [...songsToSort].sort((a, b) => {
+      // First sort by title
+      const titleComparison = a.title
+        .toLowerCase()
+        .localeCompare(b.title.toLowerCase());
+
+      // If titles are the same, sort by artist
+      if (titleComparison === 0) {
+        return a.artist.toLowerCase().localeCompare(b.artist.toLowerCase());
+      }
+
+      return titleComparison;
+    });
+  }, []);
+
   const loadSongs = useCallback(async () => {
     if (!auth.currentUser?.uid) return;
 
@@ -43,14 +58,16 @@ export const SongSelectorModal: React.FC<SongSelectorModalProps> = ({
       const fetchedSongs = await categoryService.getAllSongsByUserId(
         auth.currentUser.uid,
       );
-      setSongs(fetchedSongs);
+      // Sort the songs before saving them in the state
+      const sortedSongs = sortSongs(fetchedSongs);
+      setSongs(sortedSongs);
     } catch (error) {
       console.error('Failed to fetch songs:', error);
       Alert.alert('Error', 'Failed to load songs');
     } finally {
       setIsLoading(false);
     }
-  }, [auth.currentUser?.uid, categoryService]);
+  }, [auth.currentUser?.uid, categoryService, sortSongs]);
 
   useEffect(() => {
     if (isVisible) {
@@ -98,7 +115,6 @@ export const SongSelectorModal: React.FC<SongSelectorModalProps> = ({
       visible={isVisible}
       animationType="slide"
       presentationStyle="formSheet">
-      {/* <KeyboardGestureArea interpolator="ios" style={{flex: 1}}> */}
       <ScrollView horizontal={false} style={{flex: 1}}>
         <View style={styles.modalBtnContainer}>
           <Text style={styles.modalFormHeaderTitle}>Add Songs</Text>
@@ -136,7 +152,6 @@ export const SongSelectorModal: React.FC<SongSelectorModalProps> = ({
           />
         )}
       </ScrollView>
-      {/* </KeyboardGestureArea> */}
     </Modal>
   );
 };
