@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
-  Linking,
 } from 'react-native';
 import {globalColors} from '../../theme/Theme';
 import {useTopTracks} from '../../../hooks/useTopTracks';
@@ -38,10 +37,7 @@ export const ExploreScreen = () => {
   ];
 
   const handleTrackPress = (track: Track) => {
-    console.log('Track selected:', track); // Para debugging
-    // navigation.navigate('TrackDetailsScreen', {
-    //   trackId: track.id,
-    // });
+    console.log('Track selected:', track);
     Alert.alert('Song details soon...');
   };
 
@@ -142,38 +138,19 @@ const styles = StyleSheet.create({
     marginHorizontal: -20,
     paddingHorizontal: 20,
   },
-  recentCard: {
-    width: width * 0.4,
-    marginRight: 15,
-  },
-  recentImagePlaceholder: {
-    width: '100%',
-    height: width * 0.4,
-    backgroundColor: '#186D65', // primaryDark1
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  recentTitle: {
-    color: '#F0F7EE',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  recentSubtitle: {
-    color: '#838282', // terceary
-    fontSize: 14,
-  },
+
   songRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    backgroundColor: '#184945', // primaryDark
+    backgroundColor: '#184945',
     padding: 12,
     borderRadius: 8,
   },
   songRank: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#6ADEC9', // primaryaryAlt2
+    color: '#6ADEC9',
     width: 30,
   },
   songImagePlaceholder: {
@@ -260,7 +237,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    // Sombra suave
     shadowColor: '#000',
     shadowOffset: {
       width: 0,

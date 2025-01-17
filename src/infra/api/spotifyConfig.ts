@@ -40,7 +40,6 @@ const spotifyConfig = {
   getNewReleases: async () => {
     try {
       console.log('Running on:', Platform.OS);
-      // Quitamos /api porque ya está en la URL base
       console.log('Fetching from:', `${API_BASE_URL}/browse/new-releases`);
 
       const response = await fetch(`${API_BASE_URL}/browse/new-releases`);
