@@ -25,6 +25,7 @@ interface PlaylistSelectorModalProps {
   songData: SongData | null;
   onAddToPlaylist: (playlistId: string) => Promise<void>;
 }
+
 export const PlaylistSelectorModal: React.FC<PlaylistSelectorModalProps> = ({
   isVisible,
   onClose,
@@ -35,10 +36,19 @@ export const PlaylistSelectorModal: React.FC<PlaylistSelectorModalProps> = ({
   const auth = getAuth();
   const playlistService = usePlaylistService();
 
+  // Función para ordenar alfabéticamente
+  const sortPlaylists = useCallback(
+    (playlistsToSort: PlaylistView[]): PlaylistView[] => {
+      return [...playlistsToSort].sort((a, b) =>
+        a.title.toLowerCase().localeCompare(b.title.toLowerCase()),
+      );
+    },
+    [],
+  );
+
   const loadPlaylists = useCallback(async () => {
-    console.log('Loading playlists...'); // Debugging
     if (!auth.currentUser?.uid) {
-      console.log('No user ID found'); // Debugging
+      console.log('No user ID found');
       return;
     }
 
@@ -47,18 +57,18 @@ export const PlaylistSelectorModal: React.FC<PlaylistSelectorModalProps> = ({
       const fetchedPlaylists = await playlistService.getPlaylists(
         auth.currentUser.uid,
       );
-      console.log('Fetched playlists:', fetchedPlaylists); // Debugging
-      setPlaylists(fetchedPlaylists);
+      // Ordenar las playlists antes de guardarlas en el estado
+      const sortedPlaylists = sortPlaylists(fetchedPlaylists);
+      setPlaylists(sortedPlaylists);
     } catch (error) {
       console.error('Failed to fetch playlists:', error);
       Alert.alert('Error', 'Failed to load playlists');
     } finally {
       setIsLoading(false);
     }
-  }, [auth.currentUser?.uid, playlistService]);
+  }, [auth.currentUser?.uid, playlistService, sortPlaylists]);
 
   useEffect(() => {
-    console.log('Modal visibility changed:', isVisible); // Debugging
     if (isVisible) {
       loadPlaylists();
     }
@@ -94,12 +104,12 @@ export const PlaylistSelectorModal: React.FC<PlaylistSelectorModalProps> = ({
       </View>
     </TouchableOpacity>
   );
+
   return (
     <Modal
       visible={isVisible}
       animationType="slide"
       presentationStyle="formSheet">
-      {/* <KeyboardGestureArea interpolator="ios" style={{flex: 1}}> */}
       <ScrollView horizontal={false} style={{flex: 1}}>
         <View style={styles.modalBtnContainer}>
           <Text style={styles.modalFormHeaderTitle}>Add to a Playlist</Text>
@@ -137,7 +147,6 @@ export const PlaylistSelectorModal: React.FC<PlaylistSelectorModalProps> = ({
           />
         )}
       </ScrollView>
-      {/* </KeyboardGestureArea> */}
     </Modal>
   );
 };
@@ -163,13 +172,7 @@ const styles = StyleSheet.create({
   },
   playlistItem: {
     marginVertical: 8,
-    backgroundColor: globalColors.light,
     borderRadius: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   playlistItemContent: {
     flexDirection: 'row',
@@ -178,7 +181,7 @@ const styles = StyleSheet.create({
   },
   playlistTitle: {
     marginLeft: 12,
-    fontSize: 16,
+    fontSize: 18,
     color: globalColors.primaryDark,
     flex: 1,
   },
